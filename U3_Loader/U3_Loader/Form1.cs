@@ -17,8 +17,8 @@ namespace U3_Loader
         private string ExportDir;
         private List<SampleCode> Samples7a;
         private List<SampleCode> Samples00;
-        string String7A = "CMD,Type,Offset1 Address(CPU),Offset1 Address(ROM),Priority,Offset2,Offset2 Address(CPU),Offset2 Address(ROM),Voice,Volume?,Offset3 Address(CPU),Offset3 Address(ROM),Offset4 Address(CPU),Offset4 Address(ROM),Offset5 Address(CPU),Offset5 Address(ROM),Bank,Pad?,Sample\n";
-        string String00 = "CMD,Type,Offset1 Address(CPU),Offset1 Address(ROM),Priority,Offset2,Offset2 Address(CPU),Offset2 Address(ROM),Voice,Volume?,Offset3 Address(CPU),Offset3 Address(ROM),Offset4 Address(CPU),Offset4 Address(ROM),Offset5 Address(CPU),Offset5 Address(ROM),Bank,Pad?,Sample\n";
+        string String7A = "CMD,Type,Offset1 Address(CPU),Offset1 Address(ROM),Type Code,Offset2,Offset2 Address(CPU),Offset2 Address(ROM),Voice,Volume?,Offset3 Address(CPU),Offset3 Address(ROM),Offset4 Address(CPU),Offset4 Address(ROM),Offset5 Address(CPU),Offset5 Address(ROM),Bank,Pad?,Sample\n";
+        string String00 = "CMD,Type,Offset1 Address(CPU),Offset1 Address(ROM),Type Code,Offset2,Offset2 Address(CPU),Offset2 Address(ROM),Voice,Volume?,Offset3 Address(CPU),Offset3 Address(ROM),Offset4 Address(CPU),Offset4 Address(ROM),Offset5 Address(CPU),Offset5 Address(ROM),Bank,Pad?,Sample\n";
 
         public Form1()
         {
@@ -75,6 +75,40 @@ namespace U3_Loader
                     if (synth == false)
                     {
                         samplecode.priority = tmp[samplecode.offset1ROM];
+
+                        switch (samplecode.priority)
+                        {
+                            case 0x01:
+                                {
+                                    samplecode.Type = "Music";
+                                    break;
+                                }
+
+                            case 0x04:
+                                {
+                                    samplecode.Type = "SFX";
+                                    break;
+                                }
+
+                            case 0x07:
+                                {
+                                    samplecode.Type = "Sample";
+                                    break;
+                                }
+
+                            case 0x0F:
+                                {
+                                    samplecode.Type = "Code";
+                                    break;
+                                }
+
+                            default:
+                                {
+                                    samplecode.Type = "0x"+ samplecode.priority.ToString("X2");
+                                    break;
+                                }
+                        }
+
                         samplecode.offset2 = tmp[samplecode.offset1ROM + 1];
                         samplecode.offset2CPU = (int)(base2 + (2 * samplecode.offset2)); //6255 + 2 x (byte2)
                         samplecode.offset2ROM = (int)(origstart + samplecode.offset2CPU - baseadd); //2255 + 2 x (byte2)
@@ -181,6 +215,38 @@ namespace U3_Loader
                     if (synth == false)
                     {
                         samplecode.priority = tmp[samplecode.offset1ROM];
+                        switch (samplecode.priority)
+                        {
+                            case 0x01:
+                                {
+                                    samplecode.Type = "Music";
+                                    break;
+                                }
+
+                            case 0x04:
+                                {
+                                    samplecode.Type = "SFX";
+                                    break;
+                                }
+
+                            case 0x07:
+                                {
+                                    samplecode.Type = "Sample";
+                                    break;
+                                }
+
+                            case 0x0F:
+                                {
+                                    samplecode.Type = "Code";
+                                    break;
+                                }
+
+                            default:
+                                {
+                                    samplecode.Type = "0x" + samplecode.priority.ToString("X2");
+                                    break;
+                                }
+                        }
                         samplecode.offset2 = tmp[samplecode.offset1ROM + 1];
                         samplecode.offset2CPU = (int)(base2 + (2 * samplecode.offset2)); //6255 + 2 x (byte2)
                         samplecode.offset2ROM = (int)(origstart + samplecode.offset2CPU - baseadd); //2255 + 2 x (byte2)
