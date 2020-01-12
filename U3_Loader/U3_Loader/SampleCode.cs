@@ -24,6 +24,7 @@ namespace U3_Loader
         internal byte sample;
         internal ushort offset5CPU;
         internal int offset5ROM;
+        internal ushort length;
 
         internal string ToStringOut()
         {
@@ -31,7 +32,7 @@ namespace U3_Loader
                             + offset2CPU.ToString("X4") + ",0x" + offset2ROM.ToString("X5") + ",0x" + voice.ToString("X2") + ",0x" + volume.ToString("X2") + ",0x"
                             + offset3CPU.ToString("X4") + ",0x" + offset3ROM.ToString("X5") + ",0x"
                             + offset4CPU.ToString("X4") + ",0x" + offset4ROM.ToString("X5") + ",0x" 
-                            + offset5CPU.ToString("X4") + ",0x" + offset5ROM.ToString("X5") + ",0x" + bank.ToString("X2") + ",0x" + pad.ToString("X2") + ",0x" + sample.ToString("X2") + "\n";
+                            + offset5CPU.ToString("X4") + ",0x" + offset5ROM.ToString("X5") + ",0x" + bank.ToString("X2") + ",0x" + pad.ToString("X2") + ",0x" + sample.ToString("X2") + ",0x" + length.ToString("X5") + "\n";
 
         }
     }

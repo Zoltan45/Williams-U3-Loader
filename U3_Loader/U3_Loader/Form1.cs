@@ -17,8 +17,8 @@ namespace U3_Loader
         private string ExportDir;
         private List<SampleCode> Samples7a;
         private List<SampleCode> Samples00;
-        string String7A = "CMD,Type,Offset1 Address(CPU),Offset1 Address(ROM),Type Code,Offset2,Offset2 Address(CPU),Offset2 Address(ROM),Voice,Volume?,Offset3 Address(CPU),Offset3 Address(ROM),Offset4 Address(CPU),Offset4 Address(ROM),Offset5 Address(CPU),Offset5 Address(ROM),Bank,Pad?,Sample\n";
-        string String00 = "CMD,Type,Offset1 Address(CPU),Offset1 Address(ROM),Type Code,Offset2,Offset2 Address(CPU),Offset2 Address(ROM),Voice,Volume?,Offset3 Address(CPU),Offset3 Address(ROM),Offset4 Address(CPU),Offset4 Address(ROM),Offset5 Address(CPU),Offset5 Address(ROM),Bank,Pad?,Sample\n";
+        string String7A = "CMD,Type,Offset1 Address(CPU),Offset1 Address(ROM),Type Code,Offset2,Offset2 Address(CPU),Offset2 Address(ROM),Voice,Volume?,Offset3 Address(CPU),Offset3 Address(ROM),Offset4 Address(CPU),Offset4 Address(ROM),Offset5 Address(CPU),Offset5 Address(ROM),Bank,Pad?,Sample, Length\n";
+        string String00 = "CMD,Type,Offset1 Address(CPU),Offset1 Address(ROM),Type Code,Offset2,Offset2 Address(CPU),Offset2 Address(ROM),Voice,Volume?,Offset3 Address(CPU),Offset3 Address(ROM),Offset4 Address(CPU),Offset4 Address(ROM),Offset5 Address(CPU),Offset5 Address(ROM),Bank,Pad?,Sample, Length\n";
 
         public Form1()
         {
@@ -102,6 +102,11 @@ namespace U3_Loader
                                     break;
                                 }
 
+                            case 0x10:
+                                {
+                                    samplecode.Type = "NOP";
+                                    break;
+                                }
                             default:
                                 {
                                     samplecode.Type = "0x"+ samplecode.priority.ToString("X2");
@@ -183,6 +188,7 @@ namespace U3_Loader
                         samplecode.bank = tmp[samplecode.offset5ROM];
                         samplecode.pad = tmp[samplecode.offset5ROM + 1];
                         samplecode.sample = tmp[samplecode.offset5ROM + 2];
+                        samplecode.length = (ushort) getShort(tmp,samplecode.offset5ROM+3);
                     }
                     else
                     {
@@ -191,6 +197,7 @@ namespace U3_Loader
                         samplecode.bank = 0;
                         samplecode.pad = 0;
                         samplecode.sample = 0;
+                        samplecode.length = 0;
                     }
                     Samples7a.Add(samplecode);
                     String7A += samplecode.ToStringOut();
@@ -238,6 +245,11 @@ namespace U3_Loader
                             case 0x0F:
                                 {
                                     samplecode.Type = "Code";
+                                    break;
+                                }
+                            case 0x10:
+                                {
+                                    samplecode.Type = "NOP";
                                     break;
                                 }
 
@@ -321,6 +333,7 @@ namespace U3_Loader
                         samplecode.bank = tmp[samplecode.offset5ROM];
                         samplecode.pad = tmp[samplecode.offset5ROM + 1];
                         samplecode.sample = tmp[samplecode.offset5ROM + 2];
+                        samplecode.length = (ushort) getShort(tmp,samplecode.offset5ROM+3);
                     }
                     else
                     {
@@ -329,6 +342,7 @@ namespace U3_Loader
                         samplecode.bank = 0;
                         samplecode.pad = 0;
                         samplecode.sample = 0;
+                        samplecode.length = 0;
                     }
                     Samples00.Add(samplecode);
                     String00 += samplecode.ToStringOut();
