@@ -66,6 +66,14 @@ namespace U3_Loader
                     samplecode.offset1CPU = (int)(start_7A + (2 * i)); //5f44 + 2 x id
                     samplecode.offset1ROM = (int)(origstart +samplecode.offset1CPU - baseadd); //1f44 + 2 x id
 
+                    if (samplecode.offset1CPU >= base2) 
+                    {
+                        samplecode.Type = "INVALID";
+                        Samples7a.Add(samplecode);
+                        String7A += samplecode.ToStringOut();
+                        continue;
+                    }
+
                     if (((samplecode.offset1ROM + 1) > tmp.Length) || samplecode.offset1ROM < 0)
                     {
                         samplecode.Type = "Synth (Off1)";

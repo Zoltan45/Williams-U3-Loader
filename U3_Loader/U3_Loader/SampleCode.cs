@@ -6,25 +6,25 @@ namespace U3_Loader
     {
         internal string ID;
         internal string Type;
-        internal int offset1CPU;
-        internal int offset1ROM;
-        internal byte priority;
-        internal byte offset2;
-        internal int offset2CPU;
-        internal int offset2ROM;
-        internal int offset3CPU;
-        internal int offset3ROM;
-        internal byte voice;
-        internal byte volume;
-        internal byte offset3A;
-        internal int offset4CPU;
-        internal int offset4ROM;
-        internal byte bank;
-        internal byte pad;
-        internal byte sample;
-        internal ushort offset5CPU;
-        internal int offset5ROM;
-        internal ushort length;
+        internal int offset1CPU = 0;
+        internal int offset1ROM = 0;
+        internal byte priority = 0;
+        internal byte offset2 = 0;
+        internal int offset2CPU = 0;
+        internal int offset2ROM = 0;
+        internal int offset3CPU = 0;
+        internal int offset3ROM = 0;
+        internal byte voice = 0;
+        internal byte volume = 0;
+        internal byte offset3A = 0;
+        internal int offset4CPU = 0;
+        internal int offset4ROM = 0;
+        internal byte bank = 0;
+        internal byte pad = 0;
+        internal byte sample = 0;
+        internal ushort offset5CPU = 0;
+        internal int offset5ROM = 0;
+        internal ushort length = 0;
 
         internal string ToStringOut()
         {
