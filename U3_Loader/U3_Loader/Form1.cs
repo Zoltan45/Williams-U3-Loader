@@ -17,8 +17,10 @@ namespace U3_Loader
         private string ExportDir;
         private List<SampleCode> Samples7a;
         private List<SampleCode> Samples00;
-        string String7A = "CMD,Type,Offset1 Address(CPU),Offset1 Address(ROM),Type Code,Offset2,Offset2 Address(CPU),Offset2 Address(ROM),Voice,Volume?,Offset3 Address(CPU),Offset3 Address(ROM),Offset4 Address(CPU),Offset4 Address(ROM),Offset5 Address(CPU),Offset5 Address(ROM),Bank,Pad?,Sample, Length\n";
-        string String00 = "CMD,Type,Offset1 Address(CPU),Offset1 Address(ROM),Type Code,Offset2,Offset2 Address(CPU),Offset2 Address(ROM),Voice,Volume?,Offset3 Address(CPU),Offset3 Address(ROM),Offset4 Address(CPU),Offset4 Address(ROM),Offset5 Address(CPU),Offset5 Address(ROM),Bank,Pad?,Sample, Length\n";
+        private List<Sample> SamplesINT;
+        string String7A = "CMD,Type,Offset1 Address(CPU),Offset1 Address(ROM),Type Code,Offset2,Offset2 Address(CPU),Offset2 Address(ROM),Offset3 Address(CPU),Offset3 Address(ROM),Voice,Sample Internal ID,Sample Offset Address(CPU),Sample Offset Address(ROM),Sample Jump Address(CPU),Sample Jump Address(ROM),Bank,Delay(if 2 or less),SampleNo,Length,Time(Ticks)\n";
+        string String00 = "CMD,Type,Offset1 Address(CPU),Offset1 Address(ROM),Type Code,Offset2,Offset2 Address(CPU),Offset2 Address(ROM),Offset3 Address(CPU),Offset3 Address(ROM),Voice,Sample Internal ID,Sample Offset Address(CPU),Sample Offset Address(ROM),Sample Jump Address(CPU),Sample Jump Address(ROM),Bank,Delay(if 2 or less),SampleNo,Length,Time(Ticks)\n";
+        string StringSamp = "ID,Offset Address(CPU),Offset Address(ROM),Jump Address(CPU),Jump Address(ROM),Bank,Delay(if 2 or less),Sample,Length,Time(Ticks)\n";
 
         public Form1()
         {
@@ -29,6 +31,7 @@ namespace U3_Loader
         {
             Samples7a = new List<SampleCode>();
             Samples00 = new List<SampleCode>();
+            SamplesINT = new List<Sample>();
             int baseadd = 0x4000;
             OpenFileDialog OF = new OpenFileDialog
             {
@@ -41,7 +44,7 @@ namespace U3_Loader
                 ExportDir = ImportDir;
                 byte[] tmp = File.ReadAllBytes(OF.FileName);
                 int start = 0x10000;
-                for (int i=1; i < 3; i++) //find bank 3
+                for (int bnk = 1; bnk < 3; bnk++) //find bank 3
                 {
                     start += 0x8000;
                     if (tmp.Length <= start)
@@ -51,22 +54,54 @@ namespace U3_Loader
                 }
                 int origstart = start;
 
-                ushort start_7A = getShort(tmp,origstart + 0x19);
+                ushort start_7A = getShort(tmp, origstart + 0x19);
                 ushort start_00 = getShort(tmp, origstart + 0x0f);
 
-                ushort base2 = getShort(tmp,origstart + 0x0b);
-                ushort base3 = getShort(tmp,origstart + 0x15);
+                ushort base2 = getShort(tmp, origstart + 0x0b);
 
-                for (int i=0; i <0x100; i++)
+                // samples
+                ushort base3 = getShort(tmp, origstart + 0x15);
+                bool terminated = false;
+                int i = 0;
+                while (terminated == false)
+                {
+                    Sample sample = new Sample();
+                    sample.ID = i.ToString("X2");
+                    sample.offset4CPU = (int)(base3 + (2 * i));
+                    sample.offset4ROM = origstart + sample.offset4CPU - baseadd;
+
+                    sample.offset5CPU = (ushort)getShort(tmp, sample.offset4ROM); //short address
+                    sample.offset5ROM = origstart + sample.offset5CPU - baseadd;
+
+                    if (sample.offset5CPU < base3) //out of data
+                    {
+                        terminated = true;
+                    }
+                    else
+                    {
+                        sample.bank = tmp[sample.offset5ROM];
+                        sample.pad = tmp[sample.offset5ROM + 1];
+                        sample.sample = tmp[sample.offset5ROM + 2];
+                        sample.length = (ushort)getShort(tmp, sample.offset5ROM + 3);
+                        sample.time = sample.length / 7575.75 * 2;
+
+                        SamplesINT.Add(sample);
+                        StringSamp += sample.ToStringOut();
+                        i++;
+                    }
+                }
+
+
+                for (int ia = 0; ia < 0x100; ia++)
                 {
                     bool synth = false;
                     SampleCode samplecode = new SampleCode();
-                    samplecode.ID = i.ToString("X");
+                    samplecode.ID = ia.ToString("X");
                     samplecode.Type = "Sample";
-                    samplecode.offset1CPU = (int)(start_7A + (2 * i)); //5f44 + 2 x id
-                    samplecode.offset1ROM = (int)(origstart +samplecode.offset1CPU - baseadd); //1f44 + 2 x id
+                    samplecode.offset1CPU = (int)(start_7A + (2 * ia)); //5f44 + 2 x id
+                    samplecode.offset1ROM = (int)(origstart + samplecode.offset1CPU - baseadd); //1f44 + 2 x id
 
-                    if (samplecode.offset1CPU >= base2) 
+                    if (samplecode.offset1CPU >= base2)
                     {
                         samplecode.Type = "INVALID";
                         Samples7a.Add(samplecode);
@@ -117,7 +152,7 @@ namespace U3_Loader
                                 }
                             default:
                                 {
-                                    samplecode.Type = "0x"+ samplecode.priority.ToString("X2");
+                                    samplecode.Type = "0x" + samplecode.priority.ToString("X2");
                                     break;
                                 }
                         }
@@ -155,70 +190,68 @@ namespace U3_Loader
 
                     if (synth == false)
                     {
-                        if ( ((samplecode.offset3ROM+2) > tmp.Length) || samplecode.offset3ROM < 0)
+                        if (((samplecode.offset3ROM + 2) > tmp.Length) || samplecode.offset3ROM < 0)
                         {
                             samplecode.Type = "Synth (Off3)";
                             synth = true;
                         }
                     }
 
-                    if (synth == false)
+                    if (synth == false && samplecode.Type == "Sample")
                     {
-                        samplecode.voice = tmp[samplecode.offset3ROM];
-                        samplecode.offset3A = tmp[samplecode.offset3ROM + 1];
-                        samplecode.volume = tmp[samplecode.offset3ROM + 2];
-                        samplecode.offset4CPU = (int)(base3 + (2 * samplecode.offset3A)); //684F + 2 x (off3a)
-                        samplecode.offset4ROM = (int)(origstart + samplecode.offset4CPU - baseadd); //684F + 2 x (off3a)
+                        bool vterminated = false;
+                        int offset = samplecode.offset3ROM;
+                        while (vterminated == false)
+                        {
+                            byte tmpvoice = tmp[offset];
+                            offset++;
+                            byte internalid = tmp[offset];
+                            offset++;
+
+                            if (internalid == 0xff)
+                            {
+                                vterminated = true;
+                                if (tmpvoice != 0x00)
+                                {
+                                    samplecode.internalid = tmpvoice;
+                                    Samples7a.Add(samplecode);
+                                    String7A += samplecode.ToStringOutSam();
+                                    Sample loader = SamplesINT.ElementAt(samplecode.internalid);
+                                    String7A += "," + loader.ToStringOutSam();
+                                }
+                            }
+                            else
+                            {
+                                if (tmpvoice != 0x00)
+                                {
+                                    samplecode.voice = tmpvoice;
+                                }
+                                samplecode.internalid = internalid;
+                                Samples7a.Add(samplecode);
+                                String7A += samplecode.ToStringOutSam();
+                                Sample loader = SamplesINT.ElementAt(samplecode.internalid);
+                                String7A += "," + loader.ToStringOutSam();
+                            }
+                        }
                     }
                     else
                     {
                         samplecode.voice = 0;
-                        samplecode.offset3A = 0;
-                        samplecode.volume = 0;
-                        samplecode.offset4CPU = 0;
-                        samplecode.offset4ROM = 0;
+                        samplecode.internalid = 0;
+                        Samples7a.Add(samplecode);
+                        String7A += samplecode.ToStringOut();
                     }
 
-                    if (synth == false)
-                    {
-                        if (((samplecode.offset4ROM + 2) > tmp.Length) || samplecode.offset4ROM < 0)
-                        {
-                            samplecode.Type = "Synth (Off4)";
-                            synth = true;
-                        }
-                    }
-
-                    if (synth == false)
-                    {
-                        samplecode.offset5CPU = (ushort) getShort(tmp,samplecode.offset4ROM);
-                        samplecode.offset5ROM = origstart + samplecode.offset5CPU - baseadd;
-
-                        samplecode.bank = tmp[samplecode.offset5ROM];
-                        samplecode.pad = tmp[samplecode.offset5ROM + 1];
-                        samplecode.sample = tmp[samplecode.offset5ROM + 2];
-                        samplecode.length = (ushort) getShort(tmp,samplecode.offset5ROM+3);
-                    }
-                    else
-                    {
-                        samplecode.offset5CPU = 0;
-                        samplecode.offset5ROM = 0;
-                        samplecode.bank = 0;
-                        samplecode.pad = 0;
-                        samplecode.sample = 0;
-                        samplecode.length = 0;
-                    }
-                    Samples7a.Add(samplecode);
-                    String7A += samplecode.ToStringOut();
                 }
 
 
-                for (int i = 0; i < 0x100; i++)
+                for (int ib = 0; ib < 0x100; ib++)
                 {
                     bool synth = false;
                     SampleCode samplecode = new SampleCode();
-                    samplecode.ID = i.ToString("X2");
+                    samplecode.ID = ib.ToString("X2");
                     samplecode.Type = "Sample";
-                    samplecode.offset1CPU = (int)(start_00 + (2 * i)); //5d44 + 2 x id
+                    samplecode.offset1CPU = (int)(start_00 + (2 * ib)); //5d44 + 2 x id
                     samplecode.offset1ROM = (int)(origstart + samplecode.offset1CPU - baseadd); //1f44 + 2 x id
 
                     if (((samplecode.offset1ROM + 1) > tmp.Length) || samplecode.offset1ROM < 0)
@@ -307,59 +340,58 @@ namespace U3_Loader
                         }
                     }
 
-                    if (synth == false)
+
+                    if (synth == false && samplecode.Type == "Sample")
                     {
-                        samplecode.voice = tmp[samplecode.offset3ROM];
-                        samplecode.offset3A = tmp[samplecode.offset3ROM + 1];
-                        samplecode.volume = tmp[samplecode.offset3ROM + 2];
-                        samplecode.offset4CPU = (int)(base3 + (2 * samplecode.offset3A)); //684F + 2 x (off3a)
-                        samplecode.offset4ROM = (int)(origstart + samplecode.offset4CPU - baseadd); //684F + 2 x (off3a)
+                        bool vterminated = false;
+                        int offset = samplecode.offset3ROM;
+                        while (vterminated == false)
+                        {
+                            byte tmpvoice = tmp[offset];
+                            offset++;
+                            byte internalid = tmp[offset];
+                            offset++;
+                            if (internalid == 0xff)
+                            {
+                                vterminated = true;
+                                if (tmpvoice != 0x00)
+                                {
+                                    samplecode.internalid = tmpvoice;
+                                    Samples00.Add(samplecode);
+                                    String00 += samplecode.ToStringOutSam();
+                                    Sample loader = SamplesINT.ElementAt(samplecode.internalid);
+                                    String00 += "," + loader.ToStringOutSam();
+                                }
+                            }
+                            else
+                            {
+                                if (tmpvoice != 0x00)
+                                {
+                                    samplecode.voice = tmpvoice;
+                                }
+                                samplecode.internalid = internalid;
+                                Samples00.Add(samplecode);
+                                String00 += samplecode.ToStringOutSam();
+                                Sample loader = SamplesINT.ElementAt(samplecode.internalid);
+                                String00 += "," + loader.ToStringOutSam();
+                            }
+                        }
                     }
                     else
                     {
                         samplecode.voice = 0;
-                        samplecode.offset3A = 0;
-                        samplecode.volume = 0;
-                        samplecode.offset4CPU = 0;
-                        samplecode.offset4ROM = 0;
+                        samplecode.internalid = 0;
+                        Samples00.Add(samplecode);
+                        String00 += samplecode.ToStringOut();
                     }
 
-                    if (synth == false)
-                    {
-                        if (((samplecode.offset4ROM + 2) > tmp.Length) || samplecode.offset4ROM < 0)
-                        {
-                            samplecode.Type = "Synth (Off4)";
-                            synth = true;
-                        }
-                    }
 
-                    if (synth == false)
-                    {
-                        samplecode.offset5CPU = (ushort)getShort(tmp, samplecode.offset4ROM);
-                        samplecode.offset5ROM = origstart + samplecode.offset5CPU - baseadd;
-
-                        samplecode.bank = tmp[samplecode.offset5ROM];
-                        samplecode.pad = tmp[samplecode.offset5ROM + 1];
-                        samplecode.sample = tmp[samplecode.offset5ROM + 2];
-                        samplecode.length = (ushort) getShort(tmp,samplecode.offset5ROM+3);
-                    }
-                    else
-                    {
-                        samplecode.offset5CPU = 0;
-                        samplecode.offset5ROM = 0;
-                        samplecode.bank = 0;
-                        samplecode.pad = 0;
-                        samplecode.sample = 0;
-                        samplecode.length = 0;
-                    }
-                    Samples00.Add(samplecode);
-                    String00 += samplecode.ToStringOut();
                 }
-
 
             }
 
 
+            TextBoxSamp.Text = StringSamp;
             TextBox7A.Text = String7A;
             TextBox00.Text = String00;
         }
@@ -400,6 +432,21 @@ namespace U3_Loader
 
                 ExportDir = System.IO.Path.GetDirectoryName(SF.FileName);
                 File.WriteAllText(SF.FileName, String00);
+            }
+        }
+
+        private void SampleCSV_Click(object sender, EventArgs e)
+        {
+            SaveFileDialog SF = new SaveFileDialog
+            {
+                Title = "Save Sample File",
+                InitialDirectory = ExportDir
+            };
+            if (SF.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+
+                ExportDir = System.IO.Path.GetDirectoryName(SF.FileName);
+                File.WriteAllText(SF.FileName, StringSamp);
             }
         }
     }
